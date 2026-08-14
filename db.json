@@ -1,0 +1,20 @@
+{
+  "contactos": [
+    {
+      "id": "1",
+      "nombre": "Carlos Vergara",
+      "telefono": "3001234567",
+      "correo": "carlosv@gmail.com",
+      "empresa": "SENA",
+      "etiqueta": "Trabajo"
+    },
+    {
+      "id": "2",
+      "nombre": "Juan Pérez",
+      "telefono": "3215433322",
+      "correo": "juan@sena.co",
+      "empresa": "SENA",
+      "etiqueta": "Estudiante"
+    }
+  ]
+}
