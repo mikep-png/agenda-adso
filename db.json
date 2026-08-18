@@ -1,20 +1,13 @@
 {
   "contactos": [
     {
-      "id": "1",
-      "nombre": "Carlos Vergara",
-      "telefono": "3001234567",
-      "correo": "carlosv@gmail.com",
-      "empresa": "SENA",
-      "etiqueta": "Trabajo"
-    },
-    {
-      "id": "2",
       "nombre": "Juan Pérez",
-      "telefono": "3215433322",
-      "correo": "juan@sena.co",
+      "telefono": "3200320302",
+      "correo": "juan@gmail.com",
+      "etiqueta": "Trabajo",
       "empresa": "SENA",
-      "etiqueta": "Estudiante"
+      "id": "DvvEUnrjvG0"
     }
-  ]
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
 }

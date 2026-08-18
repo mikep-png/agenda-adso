@@ -1,39 +1,37 @@
-const API = "http://localhost:3002/contactos";
+const API_URL = "http://localhost:3002/contactos";
 
 export async function listarContactos() {
-  const res = await fetch(API);
+  const respuesta = await fetch(API_URL);
 
-  if (!res.ok) {
-    throw new Error("Error al listar contactos");
+  if (!respuesta.ok) {
+    throw new Error("No se pudieron cargar los contactos");
   }
 
-  return res.json();
+  return await respuesta.json();
 }
 
-export async function crearContacto(data) {
-  const res = await fetch(API, {
+export async function crearContacto(contacto) {
+  const respuesta = await fetch(API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify(contacto),
   });
 
-  if (!res.ok) {
-    throw new Error("Error al crear el contacto");
+  if (!respuesta.ok) {
+    throw new Error("No se pudo crear el contacto");
   }
 
-  return res.json();
+  return await respuesta.json();
 }
 
 export async function eliminarContactoPorId(id) {
-  const res = await fetch(`${API}/${id}`, {
+  const respuesta = await fetch(`${API_URL}/${id}`, {
     method: "DELETE",
   });
 
-  if (!res.ok) {
-    throw new Error("Error al eliminar el contacto");
+  if (!respuesta.ok) {
+    throw new Error("No se pudo eliminar el contacto");
   }
-
-  return true;
 }
