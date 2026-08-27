@@ -7,6 +7,14 @@
       "etiqueta": "Trabajo",
       "empresa": "SENA",
       "id": "DvvEUnrjvG0"
+    },
+    {
+      "nombre": "Zorman",
+      "telefono": "3206309962",
+      "correo": "zorman@gmail.com",
+      "empresa": "SENA",
+      "etiqueta": "Trabajo",
+      "id": "HDd2K44F-To"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"
