@@ -1,33 +1,16 @@
 // Archivo: FormularioContacto.jsx
+// Componente reutilizado para crear y editar contactos.
 
-// Componente encargado de registrar y editar contactos.
-//
-// Responsabilidades:
-//
-// - Capturar la información del usuario.
-// - Validar nombre, teléfono y correo.
-// - Mostrar mensajes de error.
-// - Evitar envíos con datos inválidos.
-// - Controlar el estado "Guardando..."
-// - Crear nuevos contactos.
-// - Editar contactos existentes.
-// - Permitir cancelar una edición.
-
-// Importamos useEffect y useState para manejar el estado
-// y detectar cambios en el contacto que se está editando.
+// Importamos los hooks necesarios.
 import { useEffect, useState } from "react";
 
 export default function FormularioContacto({
   onAgregar,
-  contactoEnEdicion,
   onActualizar,
+  contactoEnEdicion,
   onCancelarEdicion,
 }) {
-  // ---------------------------------------------------------
-  // ESTADO DEL FORMULARIO
-  // ---------------------------------------------------------
-
-  // Contiene todos los datos que el usuario escribe.
+  // Estado principal del formulario.
   const [formulario, setFormulario] = useState({
     nombre: "",
     telefono: "",
@@ -36,29 +19,17 @@ export default function FormularioContacto({
     etiqueta: "",
   });
 
-  // ---------------------------------------------------------
-  // ESTADO DE ERRORES
-  // ---------------------------------------------------------
-
-  // Guarda los mensajes de validación de cada campo.
+  // Estado de errores.
   const [errores, setErrores] = useState({});
 
-  // ---------------------------------------------------------
-  // ESTADO DE ENVÍO
-  // ---------------------------------------------------------
-
-  // Indica si actualmente se está enviando información a la API.
+  // Estado para controlar el envío.
   const [enviando, setEnviando] = useState(false);
 
   // ---------------------------------------------------------
-  // MODO EDICIÓN
+  // CARGAR CONTACTO EN EDICIÓN
   // ---------------------------------------------------------
-
-  // Cuando cambia el contacto en edición, cargamos sus datos
-  // automáticamente dentro del formulario.
   useEffect(() => {
     if (contactoEnEdicion) {
-      // Cargamos los datos del contacto seleccionado.
       setFormulario({
         nombre: contactoEnEdicion.nombre || "",
         telefono: contactoEnEdicion.telefono || "",
@@ -67,11 +38,8 @@ export default function FormularioContacto({
         etiqueta: contactoEnEdicion.etiqueta || "",
       });
 
-      // Limpiamos los errores anteriores.
       setErrores({});
     } else {
-      // Si no existe un contacto en edición,
-      // dejamos el formulario vacío para crear un contacto.
       setFormulario({
         nombre: "",
         telefono: "",
@@ -80,7 +48,6 @@ export default function FormularioContacto({
         etiqueta: "",
       });
 
-      // Limpiamos los errores.
       setErrores({});
     }
   }, [contactoEnEdicion]);
@@ -88,8 +55,6 @@ export default function FormularioContacto({
   // ---------------------------------------------------------
   // MANEJAR CAMBIOS
   // ---------------------------------------------------------
-
-  // Actualiza el valor del campo que el usuario está modificando.
   function manejarCambio(evento) {
     const { name, value } = evento.target;
 
@@ -98,8 +63,6 @@ export default function FormularioContacto({
       [name]: value,
     }));
 
-    // Cuando el usuario modifica un campo,
-    // eliminamos el mensaje de error correspondiente.
     setErrores((erroresActuales) => ({
       ...erroresActuales,
       [name]: "",
@@ -110,22 +73,17 @@ export default function FormularioContacto({
   // ---------------------------------------------------------
   // VALIDAR FORMULARIO
   // ---------------------------------------------------------
-
-  // Comprueba que los campos obligatorios tengan datos válidos.
   function validarFormulario() {
     const nuevosErrores = {};
 
-    // El nombre no puede estar vacío.
     if (!formulario.nombre.trim()) {
       nuevosErrores.nombre = "El nombre es obligatorio.";
     }
 
-    // El teléfono no puede estar vacío.
     if (!formulario.telefono.trim()) {
       nuevosErrores.telefono = "El teléfono es obligatorio.";
     }
 
-    // El correo es obligatorio y debe contener @.
     if (!formulario.correo.trim()) {
       nuevosErrores.correo = "El correo es obligatorio.";
     } else if (!formulario.correo.includes("@")) {
@@ -138,121 +96,96 @@ export default function FormularioContacto({
   // ---------------------------------------------------------
   // ENVIAR FORMULARIO
   // ---------------------------------------------------------
-
   async function manejarEnvio(evento) {
-    // Evitamos que el navegador recargue la página.
     evento.preventDefault();
 
-    // Ejecutamos las validaciones antes de realizar la petición.
     const erroresValidacion = validarFormulario();
 
-    // Guardamos los errores encontrados.
     setErrores(erroresValidacion);
 
-    // Si existe algún error, detenemos el proceso.
     if (Object.keys(erroresValidacion).length > 0) {
       return;
     }
 
-    // Indicamos que comenzó el envío.
     setEnviando(true);
 
     try {
-      // -------------------------------------------------------
-      // MODO EDICIÓN
-      // -------------------------------------------------------
-
+      // Si existe contactoEnEdicion, estamos actualizando.
       if (contactoEnEdicion) {
-        // Enviamos los datos actualizados junto con el ID
-        // del contacto que estamos editando.
-        await onActualizar({
-          ...formulario,
-          id: contactoEnEdicion.id,
-        });
+        const actualizado = await onActualizar(
+          contactoEnEdicion.id,
+          formulario
+        );
 
-        // App.jsx se encarga de actualizar la lista
-        // y finalizar el modo edición.
-      } else {
-        // -------------------------------------------------------
-        // MODO CREACIÓN
-        // -------------------------------------------------------
-
-        // Enviamos el formulario al componente App.
-        const guardado = await onAgregar(formulario);
-
-        // Si la creación fue correcta, limpiamos el formulario.
-        if (guardado) {
-          setFormulario({
-            nombre: "",
-            telefono: "",
-            correo: "",
-            empresa: "",
-            etiqueta: "",
-          });
-
-          // También limpiamos los mensajes de validación.
+        if (actualizado) {
           setErrores({});
         }
+
+        return;
+      }
+
+      // Si no existe contactoEnEdicion, estamos creando.
+      const creado = await onAgregar(formulario);
+
+      if (creado) {
+        setFormulario({
+          nombre: "",
+          telefono: "",
+          correo: "",
+          empresa: "",
+          etiqueta: "",
+        });
+
+        setErrores({});
       }
     } catch (error) {
-      // Mostramos un mensaje amigable en caso de error.
-      // No mostramos detalles técnicos de la excepción.
       setErrores({
-        general: contactoEnEdicion
-          ? "Ocurrió un problema al actualizar el contacto. Inténtalo nuevamente."
-          : "Ocurrió un problema al guardar el contacto. Inténtalo nuevamente.",
+        general:
+          "Ocurrió un problema al guardar los cambios. Inténtalo nuevamente.",
       });
     } finally {
-      // El botón vuelve a estar disponible independientemente
-      // de si la petición tuvo éxito o falló.
       setEnviando(false);
     }
   }
 
-  // ---------------------------------------------------------
-  // CANCELAR EDICIÓN
-  // ---------------------------------------------------------
-
-  function manejarCancelarEdicion() {
-    // Limpiamos los errores del formulario.
-    setErrores({});
-
-    // Avisamos a App.jsx que se debe cancelar la edición.
-    onCancelarEdicion();
-  }
-
-  // Determinamos si el formulario está en modo edición.
   const modoEdicion = Boolean(contactoEnEdicion);
-
-  // ---------------------------------------------------------
-  // INTERFAZ DEL FORMULARIO
-  // ---------------------------------------------------------
 
   return (
     <form
       onSubmit={manejarEnvio}
-      className="bg-white border border-gray-200 rounded-xl shadow-sm p-6"
+      className="bg-white border border-slate-200 rounded-3xl shadow-sm p-6"
     >
-      {/* Título dinámico según el modo del formulario. */}
-      <h2 className="text-2xl font-bold text-gray-900 mb-5">
-        {modoEdicion ? "Editar contacto" : "Agregar contacto"}
-      </h2>
+      {/* Encabezado */}
+      <div className="mb-6">
+        <p className="text-xs font-semibold uppercase tracking-widest text-purple-600">
+          {modoEdicion ? "Modo edición" : "Modo creación"}
+        </p>
 
-      {/* Mensaje general cuando ocurre un error durante el guardado. */}
+        <h2 className="text-2xl font-bold text-slate-900 mt-1">
+          {modoEdicion
+            ? "Editar contacto"
+            : "Crear nuevo contacto"}
+        </h2>
+
+        <p className="text-sm text-slate-500 mt-1">
+          {modoEdicion
+            ? "Modifica la información del contacto seleccionado."
+            : "Completa los datos para registrar un nuevo contacto."}
+        </p>
+      </div>
+
+      {/* Error general */}
       {errores.general && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-red-700">
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {errores.general}
         </div>
       )}
 
-      {/* -------------------------------------------------
-          CAMPO NOMBRE
-      -------------------------------------------------- */}
-
+      {/* Nombre */}
       <div className="mb-4">
         <label
           htmlFor="nombre"
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block text-sm font-medium text-slate-700 mb-1"
         >
           Nombre
         </label>
@@ -263,11 +196,10 @@ export default function FormularioContacto({
           type="text"
           value={formulario.nombre}
           onChange={manejarCambio}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2"
+          className="w-full border border-slate-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
           placeholder="Nombre completo"
         />
 
-        {/* El mensaje solo aparece cuando existe un error. */}
         {errores.nombre && (
           <p className="text-red-500 text-sm mt-1">
             {errores.nombre}
@@ -275,14 +207,11 @@ export default function FormularioContacto({
         )}
       </div>
 
-      {/* -------------------------------------------------
-          CAMPO TELÉFONO
-      -------------------------------------------------- */}
-
+      {/* Teléfono */}
       <div className="mb-4">
         <label
           htmlFor="telefono"
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block text-sm font-medium text-slate-700 mb-1"
         >
           Teléfono
         </label>
@@ -293,7 +222,7 @@ export default function FormularioContacto({
           type="text"
           value={formulario.telefono}
           onChange={manejarCambio}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2"
+          className="w-full border border-slate-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
           placeholder="Número de teléfono"
         />
 
@@ -304,14 +233,11 @@ export default function FormularioContacto({
         )}
       </div>
 
-      {/* -------------------------------------------------
-          CAMPO CORREO
-      -------------------------------------------------- */}
-
+      {/* Correo */}
       <div className="mb-4">
         <label
           htmlFor="correo"
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block text-sm font-medium text-slate-700 mb-1"
         >
           Correo
         </label>
@@ -322,7 +248,7 @@ export default function FormularioContacto({
           type="email"
           value={formulario.correo}
           onChange={manejarCambio}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2"
+          className="w-full border border-slate-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
           placeholder="correo@ejemplo.com"
         />
 
@@ -333,14 +259,11 @@ export default function FormularioContacto({
         )}
       </div>
 
-      {/* -------------------------------------------------
-          CAMPO EMPRESA
-      -------------------------------------------------- */}
-
+      {/* Empresa */}
       <div className="mb-4">
         <label
           htmlFor="empresa"
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block text-sm font-medium text-slate-700 mb-1"
         >
           Empresa
         </label>
@@ -351,19 +274,16 @@ export default function FormularioContacto({
           type="text"
           value={formulario.empresa}
           onChange={manejarCambio}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2"
+          className="w-full border border-slate-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
           placeholder="Empresa"
         />
       </div>
 
-      {/* -------------------------------------------------
-          CAMPO ETIQUETA
-      -------------------------------------------------- */}
-
+      {/* Etiqueta */}
       <div className="mb-5">
         <label
           htmlFor="etiqueta"
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block text-sm font-medium text-slate-700 mb-1"
         >
           Etiqueta
         </label>
@@ -374,21 +294,17 @@ export default function FormularioContacto({
           type="text"
           value={formulario.etiqueta}
           onChange={manejarCambio}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2"
+          className="w-full border border-slate-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
           placeholder="Ej. Trabajo, Familia, Amigos"
         />
       </div>
 
-      {/* -------------------------------------------------
-          BOTONES
-      -------------------------------------------------- */}
-
-      <div className="flex flex-col sm:flex-row gap-2">
-        {/* Botón principal del formulario. */}
+      {/* Botones */}
+      <div className="flex gap-3">
         <button
           type="submit"
           disabled={enviando}
-          className="flex-1 bg-gray-900 text-white rounded-lg px-4 py-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 bg-slate-900 text-white rounded-xl px-4 py-3 font-medium hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {enviando
             ? "Guardando..."
@@ -397,14 +313,12 @@ export default function FormularioContacto({
             : "Agregar contacto"}
         </button>
 
-        {/* Botón para cancelar la edición.
-            Solo aparece cuando estamos editando. */}
         {modoEdicion && (
           <button
             type="button"
-            onClick={manejarCancelarEdicion}
+            onClick={onCancelarEdicion}
             disabled={enviando}
-            className="flex-1 bg-gray-200 text-gray-800 rounded-lg px-4 py-2 font-medium hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-xl border border-slate-300 px-4 py-3 font-medium text-slate-700 hover:bg-slate-100 transition disabled:opacity-50"
           >
             Cancelar edición
           </button>

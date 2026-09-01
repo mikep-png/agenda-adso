@@ -1,3 +1,10 @@
+// Archivo: App.jsx
+// Componente principal de Agenda ADSO v10.
+//
+// En esta versión mantenemos toda la lógica del CRUD
+// y agregamos una interfaz tipo dashboard con dos vistas:
+// crear y contactos.
+
 // Importamos los hooks necesarios de React.
 import { useEffect, useState } from "react";
 
@@ -5,8 +12,8 @@ import { useEffect, useState } from "react";
 import {
   listarContactos,
   crearContacto,
-  eliminarContactoPorId,
   actualizarContacto,
+  eliminarContactoPorId,
 } from "./api";
 
 // Importamos la información general de la aplicación.
@@ -17,27 +24,45 @@ import FormularioContacto from "./components/FormularioContacto";
 import ContactoCard from "./components/ContactoCard";
 
 export default function App() {
-  // Estado principal que almacena los contactos obtenidos desde la API.
+  // ---------------------------------------------------------
+  // ESTADOS PRINCIPALES
+  // ---------------------------------------------------------
+
+  // Lista principal de contactos.
   const [contactos, setContactos] = useState([]);
 
-  // Estado para controlar la carga inicial de los contactos.
+  // Controla la carga inicial.
   const [cargando, setCargando] = useState(true);
 
-  // Estado para mostrar errores relacionados con la comunicación con la API.
+  // Mensaje general de error de la API.
   const [errorApi, setErrorApi] = useState("");
 
-  // Estado para controlar el término escrito en el buscador.
+  // Texto de búsqueda.
   const [busqueda, setBusqueda] = useState("");
 
-  // Estado que determina la dirección del ordenamiento.
-  // true = A-Z | false = Z-A
+  // true = A-Z | false = Z-A.
   const [ordenAsc, setOrdenAsc] = useState(true);
 
-  // Estado que almacena el contacto que actualmente se está editando.
-  // null significa que el formulario está en modo creación.
+  // Contacto que actualmente se está editando.
   const [contactoEnEdicion, setContactoEnEdicion] = useState(null);
 
-  // Al cargar la aplicación, obtenemos los contactos desde JSON Server.
+  // ---------------------------------------------------------
+  // ESTADO DE LA VISTA
+  // ---------------------------------------------------------
+
+  // Controla cuál vista está activa.
+  // "crear" = formulario de creación.
+  // "contactos" = gestión de contactos.
+  const [vista, setVista] = useState("crear");
+
+  // Variables booleanas para facilitar el renderizado.
+  const estaEnVistaCrear = vista === "crear";
+  const estaEnVistaContactos = vista === "contactos";
+
+  // ---------------------------------------------------------
+  // CARGAR CONTACTOS
+  // ---------------------------------------------------------
+
   useEffect(() => {
     async function cargarContactos() {
       try {
@@ -48,7 +73,6 @@ export default function App() {
 
         setContactos(datos);
       } catch (error) {
-        // Mostramos un mensaje amigable sin exponer detalles técnicos.
         setErrorApi(
           "No fue posible cargar los contactos. Verifica que la API esté disponible."
         );
@@ -60,85 +84,68 @@ export default function App() {
     cargarContactos();
   }, []);
 
-  // Crea un contacto y actualiza la lista cuando la API responde correctamente.
+  // ---------------------------------------------------------
+  // CREAR CONTACTO
+  // ---------------------------------------------------------
+
   async function onAgregarContacto(nuevoContacto) {
     try {
       setErrorApi("");
 
-      const contactoCreado = await crearContacto(nuevoContacto);
+      const contactoCreado =
+        await crearContacto(nuevoContacto);
 
-      setContactos((prev) => [...prev, contactoCreado]);
+      setContactos((prev) => [
+        ...prev,
+        contactoCreado,
+      ]);
+
+      return contactoCreado;
     } catch (error) {
-      // El usuario recibe un mensaje comprensible si la API falla.
       setErrorApi(
         "No fue posible guardar el contacto. Verifica que la API esté disponible."
       );
 
-      // Lanzamos nuevamente el error para que el formulario
-      // pueda controlar el estado de envío.
-      throw error;
+      return null;
     }
   }
 
-  // Inicia el proceso de edición de un contacto.
-  function onEditarContacto(contacto) {
-    // Guardamos el contacto seleccionado.
-    setContactoEnEdicion(contacto);
+  // ---------------------------------------------------------
+  // ACTUALIZAR CONTACTO
+  // ---------------------------------------------------------
 
-    // Limpiamos cualquier mensaje de error anterior.
-    setErrorApi("");
-
-    // Desplazamos la página hacia arriba para mostrar el formulario.
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  }
-
-  // Cancela el proceso de edición.
-  function onCancelarEdicion() {
-    // Al colocar null, el formulario vuelve al modo creación.
-    setContactoEnEdicion(null);
-
-    // Limpiamos cualquier error existente.
-    setErrorApi("");
-  }
-
-  // Actualiza un contacto existente.
-  async function onActualizarContacto(contactoActualizado) {
+  async function onActualizarContacto(id, datos) {
     try {
       setErrorApi("");
 
-      // Enviamos los cambios a la API mediante PUT.
-      const contactoGuardado = await actualizarContacto(
-        contactoActualizado.id,
-        contactoActualizado
-      );
+      const contactoActualizado =
+        await actualizarContacto(id, datos);
 
-      // Reemplazamos el contacto anterior por el actualizado.
       setContactos((prev) =>
         prev.map((contacto) =>
-          contacto.id === contactoGuardado.id
-            ? contactoGuardado
+          contacto.id === id
+            ? contactoActualizado
             : contacto
         )
       );
 
-      // Salimos del modo edición después de guardar correctamente.
+      // Terminamos el modo edición.
       setContactoEnEdicion(null);
+
+      return contactoActualizado;
     } catch (error) {
-      // Mostramos un mensaje amigable si la API falla.
       setErrorApi(
         "No fue posible actualizar el contacto. Verifica que la API esté disponible."
       );
 
-      // Lanzamos el error para que el formulario pueda finalizar
-      // correctamente el estado de envío.
-      throw error;
+      return null;
     }
   }
 
-  // Elimina un contacto mediante su ID y actualiza el estado local.
+  // ---------------------------------------------------------
+  // ELIMINAR CONTACTO
+  // ---------------------------------------------------------
+
   async function onEliminarContacto(id) {
     try {
       setErrorApi("");
@@ -149,8 +156,7 @@ export default function App() {
         prev.filter((contacto) => contacto.id !== id)
       );
 
-      // Si el contacto eliminado era el que estaba en edición,
-      // cancelamos también el modo edición.
+      // Si se estaba editando ese contacto, cancelamos la edición.
       if (contactoEnEdicion?.id === id) {
         setContactoEnEdicion(null);
       }
@@ -161,16 +167,62 @@ export default function App() {
     }
   }
 
-  // Filtramos los contactos según nombre, correo, etiqueta o teléfono.
-  // toLowerCase() permite realizar búsquedas sin diferenciar mayúsculas
-  // de minúsculas.
-  const contactosFiltrados = contactos.filter((contacto) => {
-    const termino = busqueda.toLowerCase().trim();
+  // ---------------------------------------------------------
+  // CAMBIAR DE VISTA
+  // ---------------------------------------------------------
 
-    const nombre = (contacto.nombre || "").toLowerCase();
-    const correo = (contacto.correo || "").toLowerCase();
-    const etiqueta = (contacto.etiqueta || "").toLowerCase();
-    const telefono = String(contacto.telefono || "").toLowerCase();
+  function irAVerContactos() {
+    setVista("contactos");
+    setContactoEnEdicion(null);
+    setErrorApi("");
+  }
+
+  function irACrearContacto() {
+    setVista("crear");
+    setContactoEnEdicion(null);
+    setBusqueda("");
+    setErrorApi("");
+  }
+
+  // ---------------------------------------------------------
+  // EDITAR CONTACTO
+  // ---------------------------------------------------------
+
+  function onEditarClick(contacto) {
+    setContactoEnEdicion(contacto);
+    setErrorApi("");
+  }
+
+  // ---------------------------------------------------------
+  // CANCELAR EDICIÓN
+  // ---------------------------------------------------------
+
+  function onCancelarEdicion() {
+    setContactoEnEdicion(null);
+    setErrorApi("");
+  }
+
+  // ---------------------------------------------------------
+  // FILTRAR CONTACTOS
+  // ---------------------------------------------------------
+
+  const contactosFiltrados = contactos.filter((contacto) => {
+    const termino = busqueda
+      .toLowerCase()
+      .trim();
+
+    const nombre = (contacto.nombre || "")
+      .toLowerCase();
+
+    const correo = (contacto.correo || "")
+      .toLowerCase();
+
+    const etiqueta = (contacto.etiqueta || "")
+      .toLowerCase();
+
+    const telefono = String(
+      contacto.telefono || ""
+    ).toLowerCase();
 
     return (
       nombre.includes(termino) ||
@@ -180,11 +232,19 @@ export default function App() {
     );
   });
 
-  // Creamos una copia antes de utilizar sort para no modificar
-  // directamente el arreglo original del estado.
-  const contactosOrdenados = [...contactosFiltrados].sort((a, b) => {
-    const nombreA = (a.nombre || "").toLowerCase();
-    const nombreB = (b.nombre || "").toLowerCase();
+  // ---------------------------------------------------------
+  // ORDENAR CONTACTOS
+  // ---------------------------------------------------------
+
+  // Creamos una copia para no modificar el estado original.
+  const contactosOrdenados = [
+    ...contactosFiltrados,
+  ].sort((a, b) => {
+    const nombreA = (a.nombre || "")
+      .toLowerCase();
+
+    const nombreB = (b.nombre || "")
+      .toLowerCase();
 
     if (nombreA < nombreB) {
       return ordenAsc ? -1 : 1;
@@ -197,102 +257,369 @@ export default function App() {
     return 0;
   });
 
-  // Cambiamos automáticamente entre singular y plural.
-  const textoContador =
-    contactosOrdenados.length === 1
-      ? "contacto"
-      : "contactos";
+  // ---------------------------------------------------------
+  // INDICADORES DEL PANEL LATERAL
+  // ---------------------------------------------------------
+
+  // Cantidad total de contactos.
+  const totalContactos = contactos.length;
+
+  // Cantidad de contactos que tienen etiqueta.
+  const contactosConEtiqueta = contactos.filter(
+    (contacto) =>
+      contacto.etiqueta &&
+      contacto.etiqueta.trim() !== ""
+  ).length;
+
+  // Último contacto agregado.
+  const ultimoContacto =
+    contactos.length > 0
+      ? contactos[contactos.length - 1]
+      : null;
 
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-10">
-      <div className="max-w-5xl mx-auto">
-        {/* Encabezado de la aplicación usando la configuración centralizada. */}
-        <header className="mb-8">
-          <p className="text-xs tracking-[0.3em] text-gray-500 uppercase">
-            Desarrollo Web ReactJS Ficha {APP_INFO.ficha}
-          </p>
+    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-900">
+      
+      {/* ---------------------------------------------------
+          BARRA SUPERIOR
+      --------------------------------------------------- */}
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-slate-950/90 backdrop-blur">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            
+            {/* Identidad */}
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-2xl bg-purple-600 text-white flex items-center justify-center text-xl font-bold">
+                A
+              </div>
 
-          <h1 className="text-4xl font-extrabold text-gray-900 mt-2">
-            {APP_INFO.titulo}
-          </h1>
+              <div>
+                <h1 className="text-lg font-bold text-white">
+                  {APP_INFO.titulo}
+                </h1>
 
-          <p className="text-sm text-gray-600 mt-1">
-            {APP_INFO.subtitulo}
-          </p>
-        </header>
+                <p className="text-xs text-slate-400">
+                  Ficha {APP_INFO.ficha} · SENA CTMA · ADSO
+                </p>
+              </div>
+            </div>
 
-        {/* Formulario reutilizable para crear y editar contactos. */}
-        <section className="mb-8">
-          <FormularioContacto
-            onAgregar={onAgregarContacto}
-            contactoEnEdicion={contactoEnEdicion}
-            onActualizar={onActualizarContacto}
-            onCancelarEdicion={onCancelarEdicion}
-          />
-        </section>
-
-        {/* Mensaje general cuando ocurre un problema con la API. */}
-        {errorApi && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {errorApi}
-          </div>
-        )}
-
-        {/* Sección de búsqueda y ordenamiento. */}
-        <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
-            {/* Input controlado para realizar búsquedas en tiempo real. */}
-            <input
-              type="text"
-              className="w-full md:flex-1 rounded-xl border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-              placeholder="Buscar por nombre, correo, etiqueta o teléfono..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-            />
-
-            {/* Botón que alterna entre orden A-Z y Z-A. */}
+            {/* Botón de navegación */}
             <button
               type="button"
-              onClick={() => setOrdenAsc((prev) => !prev)}
-              className="bg-gray-100 text-gray-700 text-sm px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-200 transition"
+              onClick={
+                estaEnVistaCrear
+                  ? irAVerContactos
+                  : irACrearContacto
+              }
+              className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 transition"
             >
-              {ordenAsc ? "Ordenar Z-A" : "Ordenar A-Z"}
+              {estaEnVistaCrear
+                ? "Ver contactos"
+                : "Volver a crear contacto"}
             </button>
           </div>
+        </div>
+      </header>
 
-          {/* Contador de resultados visibles. */}
-          <p className="text-sm text-gray-500 mb-5">
-            Mostrando {contactosOrdenados.length} {textoContador}
-          </p>
+      {/* ---------------------------------------------------
+          CONTENIDO PRINCIPAL
+      --------------------------------------------------- */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* Lista final de contactos filtrados y ordenados. */}
-          {cargando ? (
-            <p className="text-sm text-gray-500">
-              Cargando contactos...
-            </p>
-          ) : contactosOrdenados.length === 0 ? (
-            <p className="text-sm text-gray-500">
-              No se encontraron contactos que coincidan con la búsqueda.
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {contactosOrdenados.map((contacto) => (
-                <ContactoCard
-                  key={contacto.id}
-                  nombre={contacto.nombre}
-                  telefono={contacto.telefono}
-                  correo={contacto.correo}
-                  etiqueta={contacto.etiqueta}
-                  empresa={contacto.empresa}
-                  onEditar={() => onEditarContacto(contacto)}
-                  onEliminar={() =>
-                    onEliminarContacto(contacto.id)
-                  }
-                />
-              ))}
+          {/* -------------------------------------------------
+              COLUMNA PRINCIPAL
+          ------------------------------------------------- */}
+          <section className="lg:col-span-2">
+
+            {/* ENCABEZADO DE LA VISTA */}
+            <div className="mb-5">
+              <p className="text-xs uppercase tracking-widest text-purple-300 font-semibold">
+                {estaEnVistaCrear
+                  ? "Modo creación"
+                  : "Modo contactos"}
+              </p>
+
+              <h2 className="text-3xl font-bold text-white mt-1">
+                {estaEnVistaCrear
+                  ? "Crear contacto"
+                  : "Gestionar contactos"}
+              </h2>
+
+              <p className="text-slate-400 mt-2">
+                {estaEnVistaCrear
+                  ? "Registra nuevos contactos utilizando el formulario."
+                  : "Busca, ordena, edita y elimina los contactos registrados."}
+              </p>
             </div>
-          )}
-        </section>
+
+            {/* -------------------------------------------------
+                VISTA CREAR
+            ------------------------------------------------- */}
+            {estaEnVistaCrear && (
+              <FormularioContacto
+                onAgregar={onAgregarContacto}
+                onActualizar={onActualizarContacto}
+                contactoEnEdicion={null}
+                onCancelarEdicion={
+                  onCancelarEdicion
+                }
+              />
+            )}
+
+            {/* -------------------------------------------------
+                VISTA CONTACTOS
+            ------------------------------------------------- */}
+            {estaEnVistaContactos && (
+              <>
+                {/* FORMULARIO DE EDICIÓN */}
+                {contactoEnEdicion && (
+                  <div className="mb-6">
+                    <FormularioContacto
+                      onAgregar={onAgregarContacto}
+                      onActualizar={
+                        onActualizarContacto
+                      }
+                      contactoEnEdicion={
+                        contactoEnEdicion
+                      }
+                      onCancelarEdicion={
+                        onCancelarEdicion
+                      }
+                    />
+                  </div>
+                )}
+
+                {/* BUSCADOR Y ORDENAMIENTO */}
+                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 mb-6">
+                  <div className="flex flex-col md:flex-row gap-3">
+                    
+                    <input
+                      type="text"
+                      value={busqueda}
+                      onChange={(e) =>
+                        setBusqueda(e.target.value)
+                      }
+                      placeholder="Buscar por nombre, correo, etiqueta o teléfono..."
+                      className="flex-1 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setOrdenAsc(
+                          (prev) => !prev
+                        )
+                      }
+                      className="rounded-xl bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition"
+                    >
+                      {ordenAsc
+                        ? "Ordenar Z-A"
+                        : "Ordenar A-Z"}
+                    </button>
+                  </div>
+
+                  <p className="text-sm text-slate-500 mt-3">
+                    Mostrando{" "}
+                    {contactosOrdenados.length}{" "}
+                    {contactosOrdenados.length === 1
+                      ? "contacto"
+                      : "contactos"}
+                  </p>
+                </div>
+
+                {/* ERROR DE API */}
+                {errorApi && (
+                  <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {errorApi}
+                  </div>
+                )}
+
+                {/* LISTA */}
+                {cargando ? (
+                  <div className="bg-white rounded-3xl p-6">
+                    <p className="text-sm text-slate-500">
+                      Cargando contactos...
+                    </p>
+                  </div>
+                ) : contactosOrdenados.length === 0 ? (
+                  <div className="bg-white rounded-3xl p-8 text-center">
+                    <p className="text-slate-500">
+                      No se encontraron contactos.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {contactosOrdenados.map(
+                      (contacto) => (
+                        <ContactoCard
+                          key={contacto.id}
+                          nombre={
+                            contacto.nombre
+                          }
+                          telefono={
+                            contacto.telefono
+                          }
+                          correo={
+                            contacto.correo
+                          }
+                          empresa={
+                            contacto.empresa
+                          }
+                          etiqueta={
+                            contacto.etiqueta
+                          }
+                          onEditar={() =>
+                            onEditarClick(
+                              contacto
+                            )
+                          }
+                          onEliminar={() =>
+                            onEliminarContacto(
+                              contacto.id
+                            )
+                          }
+                        />
+                      )
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+
+          {/* -------------------------------------------------
+              PANEL LATERAL
+          ------------------------------------------------- */}
+          <aside className="space-y-5">
+
+            {/* BANNER PRINCIPAL */}
+            <div className="rounded-3xl bg-gradient-to-br from-purple-600 to-indigo-700 p-6 text-white shadow-xl">
+              <p className="text-sm font-semibold text-purple-200">
+                SENA CTMA · ADSO
+              </p>
+
+              <h3 className="text-2xl font-bold mt-2">
+                Agenda ADSO - Dashboard
+              </h3>
+
+              <p className="text-sm text-purple-100 mt-3">
+                CRUD completo desarrollado con
+                React y JSON Server.
+              </p>
+
+              <div className="mt-6">
+                <p className="text-xs uppercase tracking-wider text-purple-200">
+                  Contactos registrados
+                </p>
+
+                <p className="text-4xl font-extrabold mt-1">
+                  {totalContactos}
+                </p>
+              </div>
+            </div>
+
+            {/* INDICADORES */}
+            <div className="rounded-3xl bg-white p-6 shadow-sm">
+              <h3 className="font-bold text-slate-900">
+                Resumen
+              </h3>
+
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <div className="rounded-2xl bg-slate-100 p-4">
+                  <p className="text-xs text-slate-500">
+                    Total
+                  </p>
+
+                  <p className="text-2xl font-bold text-slate-900">
+                    {totalContactos}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-slate-100 p-4">
+                  <p className="text-xs text-slate-500">
+                    Con etiqueta
+                  </p>
+
+                  <p className="text-2xl font-bold text-slate-900">
+                    {contactosConEtiqueta}
+                  </p>
+                </div>
+              </div>
+
+              {/* NUEVO INDICADOR */}
+              <div className="mt-3 rounded-2xl bg-purple-50 p-4">
+                <p className="text-xs text-purple-600">
+                  Último contacto
+                </p>
+
+                <p className="font-semibold text-slate-900 mt-1">
+                  {ultimoContacto
+                    ? ultimoContacto.nombre
+                    : "Sin contactos"}
+                </p>
+              </div>
+            </div>
+
+            {/* TIPS */}
+            <div className="rounded-3xl bg-white p-6 shadow-sm">
+              <h3 className="font-bold text-slate-900">
+                Code Best Practices
+              </h3>
+
+              <div className="mt-4 space-y-4 text-sm">
+                <div>
+                  <p className="font-semibold text-slate-800">
+                    Nombres descriptivos
+                  </p>
+
+                  <p className="text-slate-500 mt-1">
+                    Cada componente tiene un nombre
+                    relacionado con su responsabilidad.
+                  </p>
+                </div>
+
+                <div>
+                  <p className="font-semibold text-slate-800">
+                    Evitar duplicación
+                  </p>
+
+                  <p className="text-slate-500 mt-1">
+                    Reutilizamos componentes y funciones
+                    para evitar repetir lógica.
+                  </p>
+                </div>
+
+                <div>
+                  <p className="font-semibold text-slate-800">
+                    Responsabilidades claras
+                  </p>
+
+                  <p className="text-slate-500 mt-1">
+                    Cada archivo se encarga de una parte
+                    específica de la aplicación.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* MENSAJE PERSONAL */}
+            <div className="rounded-3xl bg-slate-800 border border-slate-700 p-6">
+              <p className="text-xs uppercase tracking-widest text-purple-300 font-semibold">
+                Mi visión
+              </p>
+
+              <p className="text-sm text-slate-200 mt-3 leading-6">
+                Mi objetivo como desarrollador es crear
+                aplicaciones que no solo funcionen,
+                sino que también sean claras, organizadas
+                y fáciles de utilizar.
+              </p>
+            </div>
+
+          </aside>
+        </div>
       </div>
     </main>
   );
