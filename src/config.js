@@ -1,13 +1,14 @@
-// Archivo: config.js
-// Contiene la configuración general de la aplicación.
+// Archivo: src/config.js
+// Configuración global del frontend Agenda ADSO
 
-// URL base de la API de JSON Server.
-export const API_BASE_URL = "http://localhost:3002/contactos";
+// URL base de la API REST desplegada en Render.
+export const API_BASE_URL =
+  "https://agenda-adso-api.onrender.com/contactos";
 
-// Información general de Agenda ADSO.
+// Información general de la aplicación
 export const APP_INFO = {
-  ficha: "3412785",
-  grupo: "ADSO",
   titulo: "Agenda ADSO v10",
-  subtitulo: "Dashboard profesional para gestión de contactos",
+  subtitulo:
+    "Gestión de contactos conectada a una API remota en Render, con validaciones y mejor experiencia de usuario.",
+  ficha: "3412785",
 };
