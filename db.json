@@ -1,0 +1,29 @@
+{
+  "contactos": [
+    {
+      "id": "1",
+      "nombre": "Carlos Pérez",
+      "telefono": "3001234567",
+      "correo": "carlos@gmail.com",
+      "etiqueta": "Trabajo",
+      "empresa": "Empresa ABC"
+    },
+    {
+      "nombre": "Ana Gómez",
+      "telefono": "3109876543",
+      "correo": "ana@gmail.com",
+      "empresa": "Empresa XYZ",
+      "etiqueta": "Personal",
+      "id": "2"
+    },
+    {
+      "id": "3",
+      "nombre": "Miguel Rodríguez",
+      "telefono": "3154567890",
+      "correo": "miguel@gmail.com",
+      "etiqueta": "Estudio",
+      "empresa": "SENA"
+    }
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
+}
